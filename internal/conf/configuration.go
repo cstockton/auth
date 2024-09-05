@@ -648,53 +648,71 @@ func LoadGlobal(filename string) (*GlobalConfiguration, error) {
 	}
 
 	config := new(GlobalConfiguration)
+	if err := loadGlobal(config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
 
+func LoadGlobalFiles(filenames ...string) (*GlobalConfiguration, error) {
+	if err := godotenv.Overload(filenames...); err != nil {
+		return nil, err
+	}
+
+	config := new(GlobalConfiguration)
+	if err := loadGlobal(config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func loadGlobal(config *GlobalConfiguration) error {
 	// although the package is called "auth" it used to be called "gotrue"
 	// so environment configs will remain to be called "GOTRUE"
 	if err := envconfig.Process("gotrue", config); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := config.ApplyDefaults(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if config.Hook.PasswordVerificationAttempt.Enabled {
 		if err := config.Hook.PasswordVerificationAttempt.PopulateExtensibilityPoint(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if config.Hook.SendSMS.Enabled {
 		if err := config.Hook.SendSMS.PopulateExtensibilityPoint(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if config.Hook.SendEmail.Enabled {
 		if err := config.Hook.SendEmail.PopulateExtensibilityPoint(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if config.Hook.MFAVerificationAttempt.Enabled {
 		if err := config.Hook.MFAVerificationAttempt.PopulateExtensibilityPoint(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if config.Hook.CustomAccessToken.Enabled {
 		if err := config.Hook.CustomAccessToken.PopulateExtensibilityPoint(); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if config.SAML.Enabled {
 		if err := config.SAML.PopulateFields(config.API.ExternalURL); err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		config.SAML.PrivateKey = ""
@@ -707,7 +725,7 @@ func LoadGlobal(filename string) (*GlobalConfiguration, error) {
 		}
 		template, err := template.New("").Parse(SMSTemplate)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		config.Sms.SMSTemplate = template
 	}
@@ -719,12 +737,12 @@ func LoadGlobal(filename string) (*GlobalConfiguration, error) {
 		}
 		template, err := template.New("").Parse(smsTemplate)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		config.MFA.Phone.SMSTemplate = template
 	}
 
-	return config, nil
+	return nil
 }
 
 // ApplyDefaults sets defaults for a GlobalConfiguration
