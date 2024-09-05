@@ -41,14 +41,14 @@ func serve(ctx context.Context) {
 	logrus.Infof("GoTrue API started on: %s", addr)
 
 	a := api.NewAPIWithVersion(config, db, utilities.Version)
-	hr := reloader.NewAtomicHandler(a)
+	ah := reloader.NewAtomicHandler(a)
 
 	baseCtx, baseCancel := context.WithCancel(context.Background())
 	defer baseCancel()
 
 	httpSrv := &http.Server{
 		Addr:              addr,
-		Handler:           hr,
+		Handler:           ah,
 		ReadHeaderTimeout: 2 * time.Second, // to mitigate a Slowloris attack
 		BaseContext: func(net.Listener) context.Context {
 			return baseCtx
@@ -58,6 +58,24 @@ func serve(ctx context.Context) {
 
 	var wg sync.WaitGroup
 	defer wg.Wait() // Do not return to caller until this goroutine is done.
+
+	if watchDir != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			fn := func(latestCfg *conf.GlobalConfiguration) {
+				log.Info("reloading api with new configuration")
+				latestAPI := api.NewAPIWithVersion(latestCfg, db, utilities.Version)
+				ah.Store(latestAPI)
+			}
+
+			rl := reloader.NewReloader(watchDir)
+			if err := rl.Watch(ctx, fn); err != nil {
+				log.WithError(err).Error("watcher is exiting")
+			}
+		}()
+	}
 
 	wg.Add(1)
 	go func() {

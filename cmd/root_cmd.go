@@ -9,7 +9,10 @@ import (
 	"github.com/supabase/auth/internal/observability"
 )
 
-var configFile = ""
+var (
+	configFile = ""
+	watchDir   = ""
+)
 
 var rootCmd = cobra.Command{
 	Use: "gotrue",
@@ -23,7 +26,7 @@ var rootCmd = cobra.Command{
 func RootCommand() *cobra.Command {
 	rootCmd.AddCommand(&serveCmd, &migrateCmd, &versionCmd, adminCmd())
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "the config file to use")
-
+	rootCmd.PersistentFlags().StringVarP(&watchDir, "watch-dir", "w", "", "config directory to watch for changes")
 	return &rootCmd
 }
 
